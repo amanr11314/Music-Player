@@ -3,7 +3,6 @@ package com.projects.musicplayer.fragments
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,14 +10,15 @@ import android.widget.RelativeLayout
 import androidx.appcompat.widget.Toolbar
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import com.ernestoyaquello.dragdropswiperecyclerview.DragDropSwipeRecyclerView
+import com.ernestoyaquello.dragdropswiperecyclerview.listener.OnItemDragListener
 import com.projects.musicplayer.R
 import com.projects.musicplayer.adapters.SongQueueAdapter
-import com.projects.musicplayer.database.recentSongs.RecentSongEntity
 import com.projects.musicplayer.database.allSongs.SongEntity
 import com.projects.musicplayer.viewmodel.allSongs.AllSongsViewModel
 import com.projects.musicplayer.viewmodel.allSongs.AllSongsViewModelFactory
@@ -34,7 +34,7 @@ import kotlinx.coroutines.runBlocking
 class SongsQueueFragment : Fragment() {
 
     lateinit var toolbar: Toolbar
-    lateinit var songQueueRecyclerView: RecyclerView
+    private lateinit var songQueueRecyclerView: DragDropSwipeRecyclerView
     lateinit var songQueueRecyclerViewAdapter: SongQueueAdapter
 
     //viewmode
@@ -81,7 +81,7 @@ class SongsQueueFragment : Fragment() {
             songQueueRecyclerViewAdapter.setSongs(mMediaControlViewModel.nowPlayingSongs.value!!)
         })
 
-        songQueueRecyclerViewAdapter.currentPlayingSetSelected = fun(currentSong: SongEntity, cardViewForSong:RelativeLayout, cardView:CardView){
+        songQueueRecyclerViewAdapter.currentPlayingSetSelected = fun(currentSong: SongEntity, cardViewForSong:RelativeLayout, _:CardView){
             Log.i("PLAYING","Value of current Song = ${currentSong.songId}")
             Log.i("PLAYING","Value of nowPlayingSong = ${mMediaControlViewModel.nowPlayingSong.value?.songId}")
             Log.i("PLAYING","Value of boolean = ${currentSong.songId==mMediaControlViewModel.nowPlayingSong.value?.songId}")
@@ -90,7 +90,7 @@ class SongsQueueFragment : Fragment() {
                 cardViewForSong.setBackgroundColor(ContextCompat.getColor(activity as Context,R.color.secondaryColor))
             }
             else{
-                val color = resources.getColor(R.color.backgroundColor)
+                val color = ContextCompat.getColor(activity!!, R.color.backgroundColor)
                 cardViewForSong.setBackgroundColor(color)
             }
         }
@@ -110,14 +110,26 @@ class SongsQueueFragment : Fragment() {
         }
 
 
-        songQueueRecyclerViewAdapter.onSongClickCallback = fun(song: SongEntity, allSongs:List<SongEntity>) {
+        songQueueRecyclerView.dragListener = object : OnItemDragListener<SongEntity> {
+            override fun onItemDragged(previousPosition: Int, newPosition: Int, item: SongEntity) {
+            }
+
+            override fun onItemDropped(initialPosition: Int, finalPosition: Int, item: SongEntity) {
+                songQueueRecyclerViewAdapter.moveItem(finalPosition,item)
+
+                mMediaControlViewModel.nowPlayingSongs.postValue(songQueueRecyclerViewAdapter.dataSet)
+            }
+
+        }
+
+
+        songQueueRecyclerViewAdapter.onSongClickCallback = fun(song: SongEntity, _:List<SongEntity>) {
             //update fav whenever fav button clicked
             uiscope.launch {
                 mMediaControlViewModel.nowPlayingSong.value = song
             }
         }
     }
-
 
 
     override fun onCreateView(
@@ -137,6 +149,7 @@ class SongsQueueFragment : Fragment() {
 
             songQueueRecyclerViewAdapter= SongQueueAdapter(activity as Context)
             songQueueRecyclerView.adapter= songQueueRecyclerViewAdapter
+            songQueueRecyclerView.orientation = DragDropSwipeRecyclerView.ListOrientation.VERTICAL_LIST_WITH_VERTICAL_DRAGGING
             songQueueRecyclerView.layoutManager= LinearLayoutManager(activity)
             songQueueRecyclerView.addItemDecoration(
                 DividerItemDecoration(

@@ -5,22 +5,19 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.ToggleButton
 import androidx.cardview.widget.CardView
-import androidx.recyclerview.widget.RecyclerView
+import com.ernestoyaquello.dragdropswiperecyclerview.DragDropSwipeAdapter
 import com.projects.musicplayer.R
-import com.projects.musicplayer.database.recentSongs.RecentSongEntity
 import com.projects.musicplayer.database.allSongs.SongEntity
-import java.text.DateFormat
-import java.text.SimpleDateFormat
-import java.util.*
 
-class SongQueueAdapter (context: Context
-) : RecyclerView.Adapter<SongQueueAdapter.SongQueueViewHolder>() {
+class SongQueueAdapter (context: Context,dataSet: List<SongEntity> = emptyList()
+) : DragDropSwipeAdapter<SongEntity, SongQueueAdapter.SongQueueViewHolder>(dataSet) {
 
-    val mInflater: LayoutInflater = LayoutInflater.from(context)
+    private val mInflater: LayoutInflater = LayoutInflater.from(context)
     private var songs: List<SongEntity>? = null
 
     //callbacks for item click listeners fro updating live data
@@ -28,56 +25,77 @@ class SongQueueAdapter (context: Context
     var onSongClickCallback: (( song: SongEntity, allFavSongs: List<SongEntity>) -> Unit)? = null
     var currentPlayingSetSelected: ((currentSong: SongEntity, cardViewOfSong:RelativeLayout, cardView:CardView) -> Unit)? = null
 
-    class SongQueueViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+
+    class SongQueueViewHolder(view: View) : DragDropSwipeAdapter.ViewHolder(view) {
         val txtSongName: TextView = view.findViewById(R.id.txtSongName)
         val txtSongArtistName: TextView = view.findViewById(R.id.txtSongArtistName)
         val btnFav: ToggleButton = view.findViewById(R.id.btnFav)
         var cardViewForSong: CardView = view.findViewById(R.id.cardViewForSong)
         var relativeLayoutCard:RelativeLayout = view.findViewById(R.id.relativeLayoutCard)
+        val dragIcon: ImageView = view.findViewById(R.id.drag_icon)
 
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SongQueueViewHolder {
-        val songItemView: View = mInflater.inflate(R.layout.single_song_item, parent, false)
+        val songItemView: View = mInflater.inflate(R.layout.single_song_draggable, parent, false)
         return SongQueueViewHolder(
             songItemView
         )
     }
 
-    override fun onBindViewHolder(holder: SongQueueViewHolder, position: Int) {
+
+    fun setSongs(mSongs: List<SongEntity>) {
+        songs = mSongs
+        dataSet = mSongs
+        notifyDataSetChanged()
+    }
+
+    override fun getItemCount(): Int {
+        return if (songs != null)
+            songs!!.size
+        else 0
+    }
+
+    override fun getViewHolder(itemView: View): SongQueueViewHolder {
+        return SongQueueViewHolder(itemView)
+    }
+
+    override fun getViewToTouchToStartDraggingItem(
+        item: SongEntity,
+        viewHolder: SongQueueViewHolder,
+        position: Int
+    ): View? {
+        return viewHolder.dragIcon
+    }
+
+
+    override fun onBindViewHolder(
+        item: SongEntity,
+        viewHolder: SongQueueViewHolder,
+        position: Int
+    ) {
         if (songs != null) {
 
             val currentSong: SongEntity = songs!![position]
-            holder.txtSongName.text = currentSong.songName
-            holder.txtSongArtistName.text = currentSong.artistName
-            holder.btnFav.isChecked = songs!![position].isFav > 0
+            viewHolder.txtSongName.text = currentSong.songName
+            viewHolder.txtSongArtistName.text = currentSong.artistName
+            viewHolder.btnFav.isChecked = songs!![position].isFav > 0
 
-            currentPlayingSetSelected?.invoke(currentSong,holder.relativeLayoutCard,holder.cardViewForSong)
+            currentPlayingSetSelected?.invoke(currentSong,viewHolder.relativeLayoutCard,viewHolder.cardViewForSong )
 
-            holder.btnFav.setOnClickListener {
+            viewHolder.btnFav.setOnClickListener {
                 favClickCallback?.invoke(currentSong.songId)
                 Log.d("SINGLE PLAYLIST INFO", songs.toString())
             }
 
-            holder.cardViewForSong.setOnClickListener {
+            viewHolder.cardViewForSong.setOnClickListener {
                 onSongClickCallback?.invoke(
                     currentSong,
                     songs!!
                 )
             }
         } else {
-            holder.txtSongName.setText(R.string.NoSong)
+            viewHolder.txtSongName.setText(R.string.NoSong)
         }
-    }
-
-    fun setSongs(mSongs: List<SongEntity>) {
-        songs = mSongs
-        notifyDataSetChanged()
-    }
-
-    override fun getItemCount(): Int {
-        return if (songs != null)
-            songs!!.size;
-        else 0;
     }
 }
