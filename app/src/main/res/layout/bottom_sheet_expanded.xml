@@ -285,7 +285,7 @@
         app:layout_constraintTop_toTopOf="@+id/guideline9"
         app:layout_constraintWidth_percent="0.08" />
 
-    <com.projects.musicplayer.uicomponents.RepeatTriStateButton
+    <com.amantech.musicplayer.uicomponents.RepeatTriStateButton
         android:id="@+id/btnRepeatControl"
         android:layout_width="0dp"
         android:layout_height="0dp"
